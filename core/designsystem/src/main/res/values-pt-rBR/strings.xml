@@ -1,0 +1,12 @@
+<resources>
+    <string name="ds_retry">Tentar novamente</string>
+    <string name="ds_loading">Carregando</string>
+    <string name="ds_artwork_of">Capa de %1$s</string>
+    <string name="ds_more_options_for">Mais opções para %1$s</string>
+    <string name="ds_song_by_artist">%1$s, de %2$s</string>
+    <string name="ds_close">Fechar</string>
+    <string name="ds_offline_cached">Você está offline. Mostrando resultados salvos.</string>
+    <string name="ds_error_no_connection">Sem conexão com a internet. Verifique sua rede e tente novamente.</string>
+    <string name="ds_error_server">O catálogo de músicas está indisponível no momento (erro %1$d). Tente novamente.</string>
+    <string name="ds_error_unknown">Algo deu errado. Tente novamente.</string>
+</resources>
