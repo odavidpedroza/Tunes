@@ -1,0 +1,8 @@
+<resources>
+    <string name="album_back">Voltar</string>
+    <string name="album_title_fallback">Álbum</string>
+    <string name="album_not_found_title">Álbum não encontrado</string>
+    <string name="album_not_found_message">O catálogo não tem detalhes para este álbum.</string>
+    <string name="album_tracks_count">%1$d músicas</string>
+    <string name="album_refresh">Atualizar álbum</string>
+</resources>
