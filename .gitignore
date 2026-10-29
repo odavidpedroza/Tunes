@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+.kotlin/
+
+# Local configuration (SDK path etc.)
+local.properties
+
+# IDE
+.idea/*
+!.idea/runConfigurations/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# OS
+.DS_Store
+*.log
+
+# Outputs
+*.apk
+*.aab
+output-metadata.json
+
+# Keystores
+*.jks
+*.keystore
