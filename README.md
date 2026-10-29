@@ -37,10 +37,11 @@ app uses the public [iTunes Search API](https://developer.apple.com/library/arch
 | API pagination | Paging 3 with a `RemoteMediator` (`core:data/paging`) – see [Pagination](#pagination-on-an-api-without-offset) |
 | Network abstraction layer | `SongsRemoteDataSource` interface in `core:network`; the iTunes implementation is `internal` and bound in DI |
 | Cache / offline-first, recently played on home | Room is the single source of truth (`core:database`); the home shows the recently played list from the database |
-| Tests | 60+ JVM unit tests, Room instrumented tests, Compose UI tests – see [Testing](#testing) |
+| Tests | 58 JVM unit tests, 7 Room DAO instrumented tests, 17 Compose UI tests – see [Testing](#testing) |
 | Error / empty / loading states | every screen; cached data stays visible with an "offline" banner when a refresh fails |
 | Pull to refresh | search results and album |
 | Forward / backward, timeline, drag-to-seek, repeat | `feature:player` + `core:player` |
+| Background playback, media notification / lock-screen controls, headset buttons | `core:player` (`PlaybackService`, Media3 `MediaSession`) |
 | Accessibility | content descriptions on every control, merged semantics on list rows, 48dp+ touch targets, slider state announced as "1:26 of 4:20" |
 
 ## Architecture
@@ -79,7 +80,7 @@ app uses the public [iTunes Search API](https://developer.apple.com/library/arch
   workaround) is `internal` to `core:network`. Swapping the catalog API means writing one new class
   and changing one `@Binds` line in `NetworkModule`.
 * **Replaceable player.** The same applies to playback: features depend on `PlaybackController`;
-  the Media3/ExoPlayer implementation is internal to `core:player`. Playback state is a `StateFlow`
+  the Media3 implementation is internal to `core:player`. Playback state is a `StateFlow`
   owned by an app-scoped singleton, so it survives navigation and both the player and the lists can observe it.
 * **Convention plugins** (`build-logic/`) centralise the Android/Compose/Hilt Gradle configuration so
   each module's build file only declares its dependencies.
@@ -113,6 +114,22 @@ Songs are played from the 30-second preview URLs the API provides (the only audi
 through the list the song was started from (search results, recently played or album). Songs without
 a preview are kept in the lists but the player explains that no preview is available.
 
+The engine (ExoPlayer) lives in `PlaybackService`, a Media3 `MediaSessionService` declared with
+`foregroundServiceType="mediaPlayback"`. The app never touches ExoPlayer directly:
+`SessionPlaybackController` connects a `MediaController` to the service and maps its `Player` state to
+`PlaybackState`. Because the controller is itself a `Player`, the mapping is the same as it would be
+against ExoPlayer, while the system gets a real media session. That gives, with no feature code involved:
+
+* playback that continues in the background and when the screen is locked (foreground service);
+* the system media notification / lock-screen card with artwork, play/pause, previous, next and seek
+  (`docs/screenshots/notification.jpg`), driven by the same queue the in-app player shows;
+* headset and Bluetooth buttons, Assistant and other controllers; a "next" from the notification is
+  reflected instantly in the app, since both observe the same session.
+
+Connecting to the service is asynchronous, so commands issued before the controller is ready are queued
+in order and replayed on connection; the UI state is updated optimistically in the meantime. Swiping the
+task away keeps the music playing; the service stops itself when nothing is playing.
+
 ## Testing
 
 | Layer | Kind | What is covered |
@@ -129,9 +146,11 @@ collaborators' contracts. CI (`.github/workflows/ci.yml`) runs unit tests, lint 
 
 ## Trade-offs and next steps
 
-* **Playback runs in-process without a foreground `MediaSessionService`.** It was out of scope for
-  the challenge; adding Media3 `MediaSession` + a service would give lock-screen controls and
-  background playback without touching the features (only `core:player`).
+* **Playback runs in a foreground `MediaSessionService`** (background playback, lock-screen and
+  notification controls, headset buttons). The default Media3 notification is used as is; a custom
+  notification layout or custom commands (e.g. a "repeat" button) would be the next step.
+* **The `MediaController` connection is not unit-tested.** It needs a real session (Robolectric or an
+  instrumented test); the pure parts around it (`PlaybackQueue`, `PlaybackState`) are.
 * **Search results are the client-side pagination described above.** A real backend would expose a
   cursor/offset; the mediator is already written for that model.
 * **No image pre-fetching / disk cache tuning** beyond Coil's defaults (which include a disk cache).

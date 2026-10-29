@@ -1,6 +1,6 @@
 package com.davidpedroza.tunes.core.player.di
 
-import com.davidpedroza.tunes.core.player.ExoPlayerPlaybackController
+import com.davidpedroza.tunes.core.player.SessionPlaybackController
 import com.davidpedroza.tunes.core.player.PlaybackController
 import dagger.Binds
 import dagger.Module
@@ -12,5 +12,5 @@ import dagger.hilt.components.SingletonComponent
 internal abstract class PlayerModule {
 
     @Binds
-    abstract fun bindPlaybackController(impl: ExoPlayerPlaybackController): PlaybackController
+    abstract fun bindPlaybackController(impl: SessionPlaybackController): PlaybackController
 }
