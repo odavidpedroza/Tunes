@@ -1,0 +1,13 @@
+<resources>
+    <string name="songs_title">Músicas</string>
+    <string name="songs_search_placeholder">Buscar</string>
+    <string name="songs_search_clear">Limpar busca</string>
+    <string name="songs_recently_played">Tocadas recentemente</string>
+    <string name="songs_empty_title">Encontre sua próxima música favorita</string>
+    <string name="songs_empty_message">Busque no catálogo por música, artista ou álbum. As músicas que você tocar aparecem aqui.</string>
+    <string name="songs_no_results_title">Nenhum resultado para \"%1$s\"</string>
+    <string name="songs_no_results_message">Confira a grafia ou tente outro artista ou música.</string>
+    <string name="songs_view_album">Ver álbum</string>
+    <string name="songs_results_for">Resultados para \"%1$s\"</string>
+    <string name="songs_refresh">Atualizar resultados</string>
+</resources>

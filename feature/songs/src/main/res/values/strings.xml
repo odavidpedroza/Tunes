@@ -1,0 +1,13 @@
+<resources>
+    <string name="songs_title">Songs</string>
+    <string name="songs_search_placeholder">Search</string>
+    <string name="songs_search_clear">Clear search</string>
+    <string name="songs_recently_played">Recently played</string>
+    <string name="songs_empty_title">Find your next favorite song</string>
+    <string name="songs_empty_message">Search the catalog by song, artist or album. Songs you play will show up here.</string>
+    <string name="songs_no_results_title">No results for \"%1$s\"</string>
+    <string name="songs_no_results_message">Check the spelling or try another artist or song.</string>
+    <string name="songs_view_album">View album</string>
+    <string name="songs_results_for">Results for \"%1$s\"</string>
+    <string name="songs_refresh">Refresh results</string>
+</resources>
