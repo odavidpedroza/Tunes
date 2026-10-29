@@ -1,0 +1,6 @@
+<!-- Splash icon: the SplashScreen API masks it to a circle, so keep the glyph inside the safe zone. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:drawable="@drawable/ic_music_note"
+        android:inset="22%" />
+</layer-list>
