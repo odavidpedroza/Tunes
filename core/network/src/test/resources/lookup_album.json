@@ -1,0 +1,9 @@
+{
+ "resultCount": 4,
+ "results": [
+  {"wrapperType":"collection", "collectionType":"Album", "artistId":5468295, "collectionId":617154241, "artistName":"Daft Punk", "collectionName":"Random Access Memories", "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music/v4/ab/source/100x100bb.jpg", "trackCount":14, "copyright":"℗ 2013 Daft Life Limited", "country":"USA", "currency":"USD", "releaseDate":"2013-05-17T07:00:00Z", "primaryGenreName":"Pop"},
+  {"wrapperType":"track", "kind":"song", "artistId":5468295, "collectionId":617154241, "trackId":617154366, "artistName":"Daft Punk", "collectionName":"Random Access Memories", "trackName":"Get Lucky (feat. Pharrell Williams & Nile Rodgers)", "previewUrl":"https://audio-ssl.itunes.apple.com/get-lucky.m4a", "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music/v4/ab/source/100x100bb.jpg", "trackNumber":8, "trackTimeMillis":369629, "primaryGenreName":"Pop"},
+  {"wrapperType":"track", "kind":"song", "artistId":5468295, "collectionId":617154241, "trackId":617154242, "artistName":"Daft Punk", "collectionName":"Random Access Memories", "trackName":"Give Life Back to Music", "previewUrl":"https://audio-ssl.itunes.apple.com/give-life.m4a", "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music/v4/ab/source/100x100bb.jpg", "trackNumber":1, "trackTimeMillis":274864, "primaryGenreName":"Pop"},
+  {"wrapperType":"track", "kind":"music-video", "artistId":5468295, "collectionId":617154241, "trackId":999, "artistName":"Daft Punk", "trackName":"Get Lucky (Video)", "trackNumber":2}
+ ]
+}
