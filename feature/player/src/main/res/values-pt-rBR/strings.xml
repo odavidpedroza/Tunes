@@ -1,0 +1,20 @@
+<resources>
+    <string name="player_title">Tocando agora</string>
+    <string name="player_back">Voltar</string>
+    <string name="player_more_options">Mais opções</string>
+    <string name="player_play">Tocar</string>
+    <string name="player_pause">Pausar</string>
+    <string name="player_skip_previous">Música anterior</string>
+    <string name="player_skip_next">Próxima música</string>
+    <string name="player_repeat_off">Repetição desativada</string>
+    <string name="player_repeat_all">Repetir tudo</string>
+    <string name="player_repeat_one">Repetir uma</string>
+    <string name="player_seek">Posição da reprodução</string>
+    <string name="player_position_of">%1$s de %2$s</string>
+    <string name="player_view_album">Ver álbum</string>
+    <string name="player_nothing_playing_title">Nada está tocando</string>
+    <string name="player_nothing_playing_message">Escolha uma música na lista para começar a ouvir.</string>
+    <string name="player_preview_unavailable">O catálogo não tem prévia para esta música.</string>
+    <string name="player_playback_error">Falha na reprodução. Verifique sua conexão e tente novamente.</string>
+    <string name="player_preview_notice">Prévia de 30 segundos, cortesia do iTunes.</string>
+</resources>

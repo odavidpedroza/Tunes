@@ -1,0 +1,20 @@
+<resources>
+    <string name="player_title">Now playing</string>
+    <string name="player_back">Back</string>
+    <string name="player_more_options">More options</string>
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_skip_previous">Previous song</string>
+    <string name="player_skip_next">Next song</string>
+    <string name="player_repeat_off">Repeat off</string>
+    <string name="player_repeat_all">Repeat all</string>
+    <string name="player_repeat_one">Repeat one</string>
+    <string name="player_seek">Playback position</string>
+    <string name="player_position_of">%1$s of %2$s</string>
+    <string name="player_view_album">View album</string>
+    <string name="player_nothing_playing_title">Nothing is playing</string>
+    <string name="player_nothing_playing_message">Pick a song from the list to start listening.</string>
+    <string name="player_preview_unavailable">The catalog has no preview for this song.</string>
+    <string name="player_playback_error">Playback failed. Check your connection and try again.</string>
+    <string name="player_preview_notice">30-second preview, courtesy of iTunes.</string>
+</resources>
