@@ -17,11 +17,13 @@ ships English and Brazilian Portuguese). The Figma references are in [`docs/desi
 
 ## Running the app
 
-Requirements: Android Studio Narwhal (or newer) with the Android 37 SDK platform, JDK 17+, an emulator or device on Android 8.0 (API 26) or newer.
+Requirements: Android Studio 2026.2 or newer (the project uses AGP 9.4), the Android 37 SDK platform and an
+emulator or device on Android 8.0 (API 26) or newer. Gradle runs on JDK 25, pinned in
+`gradle/gradle-daemon-jvm.properties` and downloaded automatically on the first build (any JDK 17+ can launch the wrapper).
 
 ```bash
 ./gradlew :app:installDebug          # build and install on the connected device/emulator
-./gradlew testDebugUnitTest test     # JVM unit tests (all modules)
+./gradlew testDebugUnitTest :core:common:test :core:model:test   # JVM unit tests (all modules)
 ./gradlew connectedDebugAndroidTest  # Room DAO tests + Compose UI tests (needs a device)
 ```
 
@@ -37,12 +39,12 @@ app uses the public [iTunes Search API](https://developer.apple.com/library/arch
 | API pagination | Paging 3 with a `RemoteMediator` (`core:data/paging`) – see [Pagination](#pagination-on-an-api-without-offset) |
 | Network abstraction layer | `SongsRemoteDataSource` interface in `core:network`; the iTunes implementation is `internal` and bound in DI |
 | Cache / offline-first, recently played on home | Room is the single source of truth (`core:database`); the home shows the recently played list from the database |
-| Tests | 58 JVM unit tests, 7 Room DAO instrumented tests, 17 Compose UI tests – see [Testing](#testing) |
+| Tests | 67 JVM unit tests, 8 Room DAO instrumented tests, 17 Compose UI tests – see [Testing](#testing) |
 | Error / empty / loading states | every screen; cached data stays visible with an "offline" banner when a refresh fails |
 | Pull to refresh | search results and album |
 | Forward / backward, timeline, drag-to-seek, repeat | `feature:player` + `core:player` |
 | Background playback, media notification / lock-screen controls, headset buttons | `core:player` (`PlaybackService`, Media3 `MediaSession`) |
-| Accessibility | content descriptions on every control, merged semantics on list rows, 48dp+ touch targets, slider state announced as "1:26 of 4:20" |
+| Accessibility | content descriptions on every control, merged semantics on list rows, 48dp+ touch targets, slider state announced as "0:12 of 0:30" |
 
 ## Architecture
 
@@ -64,9 +66,12 @@ app uses the public [iTunes Search API](https://developer.apple.com/library/arch
 └──────┬──────┘  └──────┬───────┘
        └───────┬────────┘
         ┌──────┴──────┐  ┌─────────────┐
-        │ core:model  │  │ core:common │   pure Kotlin: domain models, errors, dispatchers, clock
+        │ core:model  │  │ core:common │   pure Kotlin: domain models, errors, clock
         └─────────────┘  └─────────────┘
 ```
+
+Not drawn: `app` also depends on `core:network` and `core:database` so Hilt can see their modules, and
+`core:testing` (fakes, test data, paging helpers) is shared by every module's tests.
 
 * **Unidirectional data flow.** Every screen is a stateless `*Screen` composable fed by a `*Route`
   that collects a `StateFlow` from its ViewModel. Screens never touch repositories or the player;
@@ -86,7 +91,7 @@ app uses the public [iTunes Search API](https://developer.apple.com/library/arch
   each module's build file only declares its dependencies.
 * **SOLID in practice.** Small interfaces with a single reason to change (`SongsRepository`,
   `RecentlyPlayedRepository`, `AlbumRepository`, `SearchLocalDataSource`, `TransactionRunner`,
-  `TimeProvider`, `DispatcherProvider`), implementations injected through Hilt, and features that
+  `TimeProvider`), implementations injected through Hilt, and features that
   depend on abstractions rather than on each other.
 
 ### Pagination on an API without `offset`
@@ -126,9 +131,13 @@ against ExoPlayer, while the system gets a real media session. That gives, with 
 * headset and Bluetooth buttons, Assistant and other controllers; a "next" from the notification is
   reflected instantly in the app, since both observe the same session.
 
-Connecting to the service is asynchronous, so commands issued before the controller is ready are queued
-in order and replayed on connection; the UI state is updated optimistically in the meantime. Swiping the
-task away keeps the music playing; the service stops itself when nothing is playing.
+The controller connects as soon as the app starts. Commands issued before the connection is ready are
+queued in order and replayed on connection, with the UI state updated optimistically in the meantime.
+Swiping the task away keeps the music playing (the activity goes, the process and its state stay) and the
+service stops itself when nothing is playing. The app also never depends on in-memory state to know what
+the session plays: each item's metadata carries every `Song` field, so a queue the controller did not
+start (a session restored by the system or started by another controller) is rebuilt on connection and
+shows up in the home highlight, the player and the history.
 
 ## Testing
 
@@ -150,7 +159,18 @@ collaborators' contracts. CI (`.github/workflows/ci.yml`) runs unit tests, lint 
   notification controls, headset buttons). The default Media3 notification is used as is; a custom
   notification layout or custom commands (e.g. a "repeat" button) would be the next step.
 * **The `MediaController` connection is not unit-tested.** It needs a real session (Robolectric or an
-  instrumented test); the pure parts around it (`PlaybackQueue`, `PlaybackState`) are.
+  instrumented test). Everything around it is pure and tested: queue preparation (`PlaybackQueue`),
+  the engine-to-state mapping (`PlaybackStateReducer`) and the history tracking (`PlaybackHistoryTracker`).
+* **Pagination cost.** Because the API ignores `offset`, page *n* re-downloads pages 0..n-1 (the eighth
+  page is a 200-item response) and the catalog allows roughly 20 calls per minute, hence the search
+  debounce and the 15-minute cache. A backend with real cursors would make the mediator cheaper, not different.
+* **"View album" needs a `collectionId`.** Singles and some compilations come without one; those songs
+  simply have no "more options" menu rather than a dead action.
+* **History keeps 50 songs and the home shows 20.** The surplus is there for a future "see all" without a
+  schema change; both numbers are constants next to each other.
+* **Dark theme only, matching the design.** Light theme would be a second color scheme in `core:designsystem`.
+* **Landscape is functional, not designed.** The player shrinks its artwork and scrolls on short
+  viewports; a dedicated two-pane layout was out of scope.
 * **Search results are the client-side pagination described above.** A real backend would expose a
   cursor/offset; the mediator is already written for that model.
 * **No image pre-fetching / disk cache tuning** beyond Coil's defaults (which include a disk cache).
