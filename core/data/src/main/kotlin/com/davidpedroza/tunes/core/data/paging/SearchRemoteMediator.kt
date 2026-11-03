@@ -5,9 +5,9 @@ import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import com.davidpedroza.tunes.core.common.TimeProvider
-import com.davidpedroza.tunes.core.common.TunesException
 import com.davidpedroza.tunes.core.database.entity.SongEntity
 import com.davidpedroza.tunes.core.network.SongsRemoteDataSource
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
@@ -55,7 +55,11 @@ internal class SearchRemoteMediator(
                 clearExisting = loadType == LoadType.REFRESH,
             )
             MediatorResult.Success(endOfPaginationReached = result.endReached)
-        } catch (e: TunesException) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Network errors arrive as TunesException, but a failing Room write must not escape either:
+            // anything thrown here would crash the PagingData collector instead of showing a retry.
             MediatorResult.Error(e)
         }
     }

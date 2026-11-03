@@ -18,6 +18,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.minutes
 
 @OptIn(ExperimentalPagingApi::class)
@@ -116,5 +117,25 @@ class SearchRemoteMediatorTest {
         assertTrue(result is RemoteMediator.MediatorResult.Error)
         assertTrue((result as RemoteMediator.MediatorResult.Error).throwable is TunesException.NoConnection)
         assertEquals(listOf(1L), local.results["daft punk"]?.map { it.id })
+    }
+
+    @Test
+    fun `storage failures are reported instead of crashing the pager`() = runTest {
+        remote.pages["daft punk" to 0] = SongsPage(listOf(song(1)), endReached = true)
+        local.storeFailure = IllegalStateException("database is read-only")
+
+        val result = mediator.load(LoadType.REFRESH, state)
+
+        assertTrue((result as RemoteMediator.MediatorResult.Error).throwable is IllegalStateException)
+    }
+
+    @Test
+    fun `cancellation is not swallowed as a load error`() = runTest {
+        remote.pages["daft punk" to 0] = SongsPage(listOf(song(1)), endReached = true)
+        local.storeFailure = CancellationException("collector left")
+
+        val thrown = runCatching { mediator.load(LoadType.REFRESH, state) }.exceptionOrNull()
+
+        assertTrue(thrown is CancellationException)
     }
 }

@@ -72,10 +72,12 @@ class FakeSearchLocalDataSource : SearchLocalDataSource {
     val keys = mutableMapOf<String, SearchRemoteKeyEntity>()
     val results = mutableMapOf<String, MutableList<Song>>()
     var now: Long = 0
+    var storeFailure: Throwable? = null
 
     override suspend fun getRemoteKey(query: String): SearchRemoteKeyEntity? = keys[query]
 
     override suspend fun storePage(query: String, songs: List<Song>, nextPage: Int, endReached: Boolean, clearExisting: Boolean) {
+        storeFailure?.let { throw it }
         if (clearExisting) results.remove(query)
         results.getOrPut(query) { mutableListOf() } += songs
         keys[query] = SearchRemoteKeyEntity(query, nextPage, endReached, now)
