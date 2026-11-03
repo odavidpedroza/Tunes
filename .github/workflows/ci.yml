@@ -20,14 +20,15 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 25 # the Gradle daemon toolchain pinned in gradle/gradle-daemon-jvm.properties
 
       - uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Unit tests
-        run: ./gradlew testDebugUnitTest test --continue
+        # Android modules: debug variant only (release would double the job); JVM modules: `test`.
+        run: ./gradlew testDebugUnitTest :core:common:test :core:model:test --continue
 
       - name: Lint
         run: ./gradlew :app:lintDebug
