@@ -1,6 +1,8 @@
 package com.davidpedroza.tunes.feature.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,7 +101,7 @@ fun PlayerScreen(
     modifier: Modifier = Modifier,
 ) {
     val song = state.currentSong
-    var showOptions by remember { mutableStateOf(false) }
+    var showOptions by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -179,17 +182,21 @@ private fun PlayerContent(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier) {
-        val artworkSize = (maxWidth - 64.dp).coerceAtMost(maxHeight * 0.42f)
+        // Short viewports (landscape phones) cannot fit artwork + controls: shrink the artwork and
+        // let the content scroll instead of clipping it.
+        val compact = maxHeight < 520.dp
+        val artworkSize = (maxWidth - 64.dp).coerceAtMost(maxHeight * if (compact) 0.3f else 0.42f)
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .navigationBarsPadding(),
+                .navigationBarsPadding()
+                .then(if (compact) Modifier.verticalScroll(rememberScrollState()) else Modifier),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .then(if (compact) Modifier.padding(vertical = 16.dp) else Modifier.weight(1f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Artwork(
@@ -234,7 +241,8 @@ private fun PlayerContent(
             Timeline(
                 positionMillis = state.positionMillis,
                 durationMillis = state.durationMillis,
-                enabled = state.error != PlaybackError.PreviewUnavailable,
+                // Seeking only makes sense once the engine reported the preview length.
+                enabled = state.error != PlaybackError.PreviewUnavailable && state.durationMillis > 0,
                 onSeekTo = onSeekTo,
             )
 

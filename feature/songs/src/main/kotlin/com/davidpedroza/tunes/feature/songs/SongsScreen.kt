@@ -37,6 +37,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -116,7 +118,9 @@ fun SongsScreen(
                 text = stringResource(R.string.songs_title),
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 16.dp),
+                modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 16.dp)
+                    .semantics { heading() },
             )
             SearchField(
                 query = queryText,
@@ -241,7 +245,9 @@ private fun RecentlyPlayed(
                 text = stringResource(R.string.songs_recently_played),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .semantics { heading() },
             )
         }
         items(songs, key = { it.id }) { song ->
@@ -251,7 +257,8 @@ private fun RecentlyPlayed(
                 artworkUrl = Artwork.sized(song.artworkUrl, Artwork.THUMBNAIL),
                 isActive = song.id == nowPlayingId,
                 onClick = { onSongClick(songs, songs.indexOf(song)) },
-                onMoreClick = { onMoreClick(song) },
+                // The sheet\'s only action is "View album": songs without one get no menu.
+                onMoreClick = song.albumId?.let { { onMoreClick(song) } },
             )
         }
     }
@@ -319,7 +326,8 @@ private fun SearchResults(
                                 val loaded = items.itemSnapshotList.items
                                 onSongClick(loaded, loaded.indexOfFirst { it.id == song.id })
                             },
-                            onMoreClick = { onMoreClick(song) },
+                            // The sheet\'s only action is "View album": songs without one get no menu.
+                            onMoreClick = song.albumId?.let { { onMoreClick(song) } },
                         )
                     }
                     when (val append = items.loadState.append) {

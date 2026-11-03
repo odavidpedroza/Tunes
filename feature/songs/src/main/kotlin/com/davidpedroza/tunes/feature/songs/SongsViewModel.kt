@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.withIndex
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -37,12 +38,15 @@ class SongsViewModel @Inject constructor(
 
     /**
      * Normalized term, debounced so that typing does not fire a request per keystroke
-     * (the catalog API allows roughly 20 calls per minute).
+     * (the catalog API allows roughly 20 calls per minute). The first value is the restored
+     * query (empty on a cold start) and is not debounced, so a restored search shows at once.
      */
     @OptIn(FlowPreview::class)
     private val debouncedSearch: Flow<String> = query
         .map(SearchQuery::normalize)
-        .debounce { term -> if (term.isEmpty()) 0.milliseconds else SEARCH_DEBOUNCE }
+        .withIndex()
+        .debounce { (index, term) -> if (index == 0 || term.isEmpty()) 0.milliseconds else SEARCH_DEBOUNCE }
+        .map { it.value }
         .distinctUntilChanged()
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -65,7 +69,7 @@ class SongsViewModel @Inject constructor(
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-        initialValue = SongsUiState(query = query.value),
+        initialValue = SongsUiState(query = query.value, activeSearch = SearchQuery.normalize(query.value)),
     )
 
     fun onQueryChange(value: String) {
