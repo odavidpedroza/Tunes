@@ -8,6 +8,4 @@
     <string name="songs_no_results_title">No results for \"%1$s\"</string>
     <string name="songs_no_results_message">Check the spelling or try another artist or song.</string>
     <string name="songs_view_album">View album</string>
-    <string name="songs_results_for">Results for \"%1$s\"</string>
-    <string name="songs_refresh">Refresh results</string>
 </resources>

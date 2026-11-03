@@ -4,5 +4,4 @@
     <string name="album_not_found_title">Album not found</string>
     <string name="album_not_found_message">The catalog has no details for this album.</string>
     <string name="album_tracks_count">%1$d songs</string>
-    <string name="album_refresh">Refresh album</string>
 </resources>
