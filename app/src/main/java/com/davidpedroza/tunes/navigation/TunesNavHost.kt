@@ -48,13 +48,25 @@ fun TunesNavHost(
             onSongSelected = { navController.navigate(PlayerRoute) { launchSingleTop = true } },
             onViewAlbum = { albumId -> navController.navigate(AlbumRoute(albumId)) { launchSingleTop = true } },
         )
+        // Player and Album can open each other, so each pops back to its existing instance instead of
+        // stacking a new one: the back stack is bounded to Songs > Player > Album or Songs > Album > Player.
         playerScreen(
             onBack = navController::popBackStack,
-            onViewAlbum = { albumId -> navController.navigate(AlbumRoute(albumId)) { launchSingleTop = true } },
+            onViewAlbum = { albumId ->
+                navController.navigate(AlbumRoute(albumId)) {
+                    popUpTo<AlbumRoute>()
+                    launchSingleTop = true
+                }
+            },
         )
         albumScreen(
             onBack = navController::popBackStack,
-            onSongSelected = { navController.navigate(PlayerRoute) { launchSingleTop = true } },
+            onSongSelected = {
+                navController.navigate(PlayerRoute) {
+                    popUpTo<PlayerRoute>()
+                    launchSingleTop = true
+                }
+            },
         )
     }
 }
