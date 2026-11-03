@@ -5,6 +5,7 @@ import com.davidpedroza.tunes.core.player.PlaybackController
 import com.davidpedroza.tunes.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -36,6 +37,4 @@ class PlaybackHistoryTracker @Inject constructor(
                 .collect()
         }
     }
-
-    private suspend fun <T> kotlinx.coroutines.flow.Flow<T>.collect() = collect {}
 }

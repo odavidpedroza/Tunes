@@ -47,5 +47,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
 
+    testImplementation(project(":core:testing"))
+
     androidTestImplementation(libs.androidx.test.espresso.core)
 }

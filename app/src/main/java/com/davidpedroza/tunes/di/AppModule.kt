@@ -1,11 +1,11 @@
 package com.davidpedroza.tunes.di
 
-import com.davidpedroza.tunes.core.common.DispatcherProvider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import javax.inject.Qualifier
 import javax.inject.Singleton
@@ -22,6 +22,5 @@ object AppModule {
     @Provides
     @Singleton
     @ApplicationScope
-    fun provideApplicationScope(dispatchers: DispatcherProvider): CoroutineScope =
-        CoroutineScope(SupervisorJob() + dispatchers.default)
+    fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 }

@@ -1,7 +1,5 @@
 package com.davidpedroza.tunes.core.data.di
 
-import com.davidpedroza.tunes.core.common.DefaultDispatcherProvider
-import com.davidpedroza.tunes.core.common.DispatcherProvider
 import com.davidpedroza.tunes.core.common.TimeProvider
 import com.davidpedroza.tunes.core.data.local.RoomTransactionRunner
 import com.davidpedroza.tunes.core.data.local.TransactionRunner
@@ -31,10 +29,6 @@ internal abstract class DataModule {
     @Binds abstract fun bindTransactionRunner(impl: RoomTransactionRunner): TransactionRunner
 
     companion object {
-        @Provides
-        @Singleton
-        fun provideDispatcherProvider(): DispatcherProvider = DefaultDispatcherProvider()
-
         @Provides
         @Singleton
         fun provideTimeProvider(): TimeProvider = TimeProvider { System.currentTimeMillis() }
