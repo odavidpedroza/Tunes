@@ -28,12 +28,14 @@ import javax.inject.Singleton
 
 /**
  * [PlaybackController] that drives the engine living in [PlaybackService] through a Media3
- * [MediaController]. The controller is itself a [Player], so state mapping is the same as it would be
- * against ExoPlayer directly, while the system gets a proper media session (notification, lock screen,
- * headset buttons, background playback).
+ * [MediaController]. The controller is itself a [Player], so the state mapping ([reduce]) is the same
+ * as it would be against ExoPlayer directly, while the system gets a proper media session
+ * (notification, lock screen, headset buttons, background playback).
  *
- * Connecting to the service is asynchronous; commands issued before the connection completes are
- * queued (in order) and replayed as soon as the controller is available.
+ * The connection is opened eagerly so that, when the process is recreated while the service is still
+ * playing (task swiped away, then reopened from the notification), the queue is rebuilt from the
+ * session and the UI picks up where the music is. Commands issued before the connection completes
+ * are queued in order and replayed as soon as the controller is available.
  */
 @Singleton
 internal class SessionPlaybackController @Inject constructor(
@@ -52,20 +54,8 @@ internal class SessionPlaybackController @Inject constructor(
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
-            _state.update { current ->
-                current.copy(
-                    currentIndex = player.currentMediaItemIndex.takeIf { player.mediaItemCount > 0 } ?: -1,
-                    isPlaying = player.isPlaying,
-                    isBuffering = player.playbackState == Player.STATE_BUFFERING,
-                    positionMillis = player.currentPosition.coerceAtLeast(0L),
-                    durationMillis = player.duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L)
-                        ?: current.currentSongDuration(),
-                    repeatMode = player.repeatMode.toRepeatMode(),
-                    error = if (events.contains(Player.EVENT_PLAYER_ERROR)) current.error else current.error.takeUnless {
-                        events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) && it is PlaybackError.Playback
-                    },
-                )
-            }
+            if (events.contains(Player.EVENT_TIMELINE_CHANGED)) restoreQueueIfNeeded(player)
+            _state.update { it.reduce(player.snapshot(events)) }
             if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_PLAYBACK_STATE_CHANGED)) {
                 updateTicker(player)
             }
@@ -76,23 +66,24 @@ internal class SessionPlaybackController @Inject constructor(
         }
     }
 
+    init {
+        connect()
+    }
+
     override fun play(songs: List<Song>, startIndex: Int) {
         val prepared = PlaybackQueue.prepare(songs, startIndex)
         if (prepared == null) {
-            // Still expose the selected song so the player screen can show it with an explanation.
+            // Expose the selected song so the player screen can show it with an explanation. The engine
+            // is only paused: its queue stays as it was, so it must not override this state (see reduce()).
             _state.update {
                 PlaybackState(
                     queue = songs,
                     currentIndex = startIndex,
                     repeatMode = it.repeatMode,
-                    durationMillis = songs.getOrNull(startIndex)?.durationMillis ?: 0L,
                     error = PlaybackError.PreviewUnavailable,
                 )
             }
-            withPlayer {
-                stop()
-                clearMediaItems()
-            }
+            controller?.pause()
             return
         }
 
@@ -102,7 +93,6 @@ internal class SessionPlaybackController @Inject constructor(
                 currentIndex = prepared.startIndex,
                 isBuffering = true,
                 repeatMode = it.repeatMode,
-                durationMillis = prepared.songs[prepared.startIndex].durationMillis ?: 0L,
             )
         }
         withPlayer {
@@ -164,7 +154,7 @@ internal class SessionPlaybackController @Inject constructor(
         controllerFuture = null
     }
 
-    /** Runs [command] now if connected, otherwise once the controller connects (the service is started lazily). */
+    /** Runs [command] now if connected, otherwise once the controller connects. */
     private fun withPlayer(command: Player.() -> Unit) {
         controller?.let { command(it); return }
         pendingCommands.addLast(command)
@@ -188,6 +178,9 @@ internal class SessionPlaybackController @Inject constructor(
                 }
                 controller = connected
                 connected.addListener(listener)
+                restoreQueueIfNeeded(connected)
+                _state.update { it.reduce(connected.snapshot(events = null)) }
+                updateTicker(connected)
                 while (pendingCommands.isNotEmpty()) pendingCommands.removeFirst().invoke(connected)
             },
             MoreExecutors.directExecutor(), // buildAsync() completes on the main looper already
@@ -198,6 +191,17 @@ internal class SessionPlaybackController @Inject constructor(
         pendingCommands.clear()
         controllerFuture = null
         _state.update { it.copy(isBuffering = false, isPlaying = false, error = PlaybackError.Playback(cause.message)) }
+    }
+
+    /**
+     * The service outlives the app process: if it already has a queue we do not know about
+     * (process recreated while playing), rebuild it from the items' metadata.
+     */
+    private fun restoreQueueIfNeeded(player: Player) {
+        if (_state.value.queue.isNotEmpty() || player.mediaItemCount == 0) return
+        val songs = (0 until player.mediaItemCount).mapNotNull { player.getMediaItemAt(it).toSongOrNull() }
+        if (songs.size != player.mediaItemCount) return
+        _state.update { it.copy(queue = songs, currentIndex = player.currentMediaItemIndex, error = null) }
     }
 
     /** Polls the position while playing; the Player API has no position callback. */
@@ -212,7 +216,18 @@ internal class SessionPlaybackController @Inject constructor(
         }
     }
 
-    private fun PlaybackState.currentSongDuration(): Long = currentSong?.durationMillis ?: 0L
+    private fun Player.snapshot(events: Player.Events?): PlayerSnapshot = PlayerSnapshot(
+        mediaItemCount = mediaItemCount,
+        currentIndex = currentMediaItemIndex,
+        isPlaying = isPlaying,
+        isBuffering = playbackState == Player.STATE_BUFFERING,
+        isActive = playbackState == Player.STATE_BUFFERING || playbackState == Player.STATE_READY,
+        positionMillis = currentPosition,
+        durationMillis = duration.takeIf { it != C.TIME_UNSET },
+        repeatMode = repeatMode.toRepeatMode(),
+        isTransition = events?.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) == true,
+        hasNewError = events?.contains(Player.EVENT_PLAYER_ERROR) == true,
+    )
 
     private fun @receiver:Player.RepeatMode Int.toRepeatMode(): RepeatMode = when (this) {
         Player.REPEAT_MODE_ALL -> RepeatMode.ALL
