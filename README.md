@@ -39,7 +39,7 @@ app uses the public [iTunes Search API](https://developer.apple.com/library/arch
 | API pagination | Paging 3 with a `RemoteMediator` (`core:data/paging`) – see [Pagination](#pagination-on-an-api-without-offset) |
 | Network abstraction layer | `SongsRemoteDataSource` interface in `core:network`; the iTunes implementation is `internal` and bound in DI |
 | Cache / offline-first, recently played on home | Room is the single source of truth (`core:database`); the home shows the recently played list from the database |
-| Tests | 67 JVM unit tests, 8 Room DAO instrumented tests, 17 Compose UI tests – see [Testing](#testing) |
+| Tests | 69 JVM unit tests, 8 Room DAO instrumented tests, 17 Compose UI tests – see [Testing](#testing) |
 | Error / empty / loading states | every screen; cached data stays visible with an "offline" banner when a refresh fails |
 | Pull to refresh | search results and album |
 | Forward / backward, timeline, drag-to-seek, repeat | `feature:player` + `core:player` |
@@ -133,8 +133,11 @@ against ExoPlayer, while the system gets a real media session. That gives, with 
 
 The controller connects as soon as the app starts. Commands issued before the connection is ready are
 queued in order and replayed on connection, with the UI state updated optimistically in the meantime.
-Swiping the task away keeps the music playing (the activity goes, the process and its state stay) and the
-service stops itself when nothing is playing. The app also never depends on in-memory state to know what
+If the session goes away (the system reclaims the service, or it is released) the controller
+drops the dead connection but keeps the queue on screen; the next command reconnects and hands the queue
+back to the new service, paused at the last position. Swiping the task away keeps the music playing (the activity goes, the process and its state stay); when
+nothing is playing the service asks to stop and goes away with the process, so a paused song is still there
+on reopening. The app also never depends on in-memory state to know what
 the session plays: each item's metadata carries every `Song` field, so a queue the controller did not
 start (a session restored by the system or started by another controller) is rebuilt on connection and
 shows up in the home highlight, the player and the history.

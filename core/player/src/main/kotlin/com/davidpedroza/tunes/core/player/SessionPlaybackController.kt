@@ -36,6 +36,9 @@ import javax.inject.Singleton
  * playing (task swiped away, then reopened from the notification), the queue is rebuilt from the
  * session and the UI picks up where the music is. Commands issued before the connection completes
  * are queued in order and replayed as soon as the controller is available.
+ *
+ * If the session goes away (service reclaimed or released) the dead connection is dropped but the
+ * queue is kept; the next command reconnects and hands the queue back to the new service.
  */
 @Singleton
 internal class SessionPlaybackController @Inject constructor(
@@ -51,6 +54,10 @@ internal class SessionPlaybackController @Inject constructor(
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
     private val pendingCommands = ArrayDeque<(Player) -> Unit>()
+
+    private val connectionListener = object : MediaController.Listener {
+        override fun onDisconnected(controller: MediaController) = this@SessionPlaybackController.onDisconnected()
+    }
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -128,7 +135,7 @@ internal class SessionPlaybackController @Inject constructor(
     }
 
     override fun skipToPrevious() = withPlayer {
-        // Like most players: restart the song unless we are at its very beginning.
+        // Restart the current song unless we're right at the start (same as most players).
         if (currentPosition > RESTART_THRESHOLD_MS || !hasPreviousMediaItem()) {
             seekTo(0)
         } else {
@@ -146,12 +153,8 @@ internal class SessionPlaybackController @Inject constructor(
     }
 
     override fun release() {
-        positionTicker?.cancel()
         pendingCommands.clear()
-        controller?.removeListener(listener)
-        controllerFuture?.let(MediaController::releaseFuture)
-        controller = null
-        controllerFuture = null
+        disconnect()
     }
 
     /** Runs [command] now if connected, otherwise once the controller connects. */
@@ -163,7 +166,7 @@ internal class SessionPlaybackController @Inject constructor(
 
     private fun connect() {
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-        val future = MediaController.Builder(context, token).buildAsync()
+        val future = MediaController.Builder(context, token).setListener(connectionListener).buildAsync()
         controllerFuture = future
         future.addListener(
             {
@@ -178,7 +181,7 @@ internal class SessionPlaybackController @Inject constructor(
                 }
                 controller = connected
                 connected.addListener(listener)
-                restoreQueueIfNeeded(connected)
+                if (connected.mediaItemCount == 0) seedPlayerIfNeeded(connected) else restoreQueueIfNeeded(connected)
                 _state.update { it.reduce(connected.snapshot(events = null)) }
                 updateTicker(connected)
                 while (pendingCommands.isNotEmpty()) pendingCommands.removeFirst().invoke(connected)
@@ -191,6 +194,32 @@ internal class SessionPlaybackController @Inject constructor(
         pendingCommands.clear()
         controllerFuture = null
         _state.update { it.copy(isBuffering = false, isPlaying = false, error = PlaybackError.Playback(cause.message)) }
+    }
+
+    /** The session is gone; keep the queue so the screen still shows the song. */
+    private fun onDisconnected() {
+        disconnect()
+        _state.update { it.copy(isPlaying = false, isBuffering = false) }
+    }
+
+    private fun disconnect() {
+        positionTicker?.cancel()
+        controller?.removeListener(listener)
+        controllerFuture?.let(MediaController::releaseFuture)
+        controller = null
+        controllerFuture = null
+    }
+
+    /**
+     * The opposite of [restoreQueueIfNeeded]: a freshly started service knows nothing about the queue
+     * we are showing (previous service instance gone), so hand it over, paused at the last position.
+     * Preparation is left to the next command, so reconnecting never starts a download by itself.
+     */
+    private fun seedPlayerIfNeeded(player: Player) {
+        val current = _state.value
+        if (current.queue.isEmpty() || current.error == PlaybackError.PreviewUnavailable) return
+        val items = current.queue.map { it.toMediaItem() }
+        player.setMediaItems(items, current.currentIndex.coerceIn(0, items.lastIndex), current.positionMillis)
     }
 
     /**

@@ -41,7 +41,11 @@ class PlaybackService : MediaSessionService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
-    /** Keep playing when the task is swiped away; stop (and drop the notification) if nothing is playing. */
+    /**
+     * Keep playing when the task is swiped away; otherwise ask to stop. While the app's own
+     * MediaController is still bound (same process) the service lingers until the process goes,
+     * so a paused song can still resume on reopening.
+     */
     override fun onTaskRemoved(rootIntent: Intent?) {
         val player = mediaSession?.player
         if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
