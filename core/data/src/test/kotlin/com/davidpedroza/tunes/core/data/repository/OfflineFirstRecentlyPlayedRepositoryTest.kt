@@ -3,6 +3,7 @@ package com.davidpedroza.tunes.core.data.repository
 import com.davidpedroza.tunes.core.data.testing.FakeRecentlyPlayedDao
 import com.davidpedroza.tunes.core.data.testing.FakeSongDao
 import com.davidpedroza.tunes.core.data.testing.FakeTimeProvider
+import com.davidpedroza.tunes.core.data.testing.FakeTransactionRunner
 import com.davidpedroza.tunes.core.data.testing.song
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -14,7 +15,7 @@ class OfflineFirstRecentlyPlayedRepositoryTest {
     private val songDao = FakeSongDao()
     private val recentlyPlayedDao = FakeRecentlyPlayedDao(songDao)
     private val time = FakeTimeProvider(now = 1_000)
-    private val repository = OfflineFirstRecentlyPlayedRepository(recentlyPlayedDao, songDao, time)
+    private val repository = OfflineFirstRecentlyPlayedRepository(FakeTransactionRunner(), recentlyPlayedDao, songDao, time)
 
     @Test
     fun `markPlayed stores the song and lists it most recent first`() = runTest {

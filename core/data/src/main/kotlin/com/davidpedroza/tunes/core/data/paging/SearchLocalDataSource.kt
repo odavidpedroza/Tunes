@@ -45,6 +45,8 @@ internal class RoomSearchLocalDataSource @Inject constructor(
         endReached: Boolean,
         clearExisting: Boolean,
     ) = transaction {
+        // Freshness is measured from the last refresh, not from the last appended page.
+        val lastUpdatedMillis = if (clearExisting) time.nowMillis() else searchDao.getRemoteKey(query)?.lastUpdatedMillis ?: time.nowMillis()
         if (clearExisting) {
             searchDao.clearResults(query)
             searchDao.clearRemoteKey(query)
@@ -60,7 +62,7 @@ internal class RoomSearchLocalDataSource @Inject constructor(
                 query = query,
                 nextPage = nextPage,
                 endReached = endReached,
-                lastUpdatedMillis = time.nowMillis(),
+                lastUpdatedMillis = lastUpdatedMillis,
             ),
         )
     }

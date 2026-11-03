@@ -99,7 +99,6 @@ class FakeSongDao : SongDao {
 
     override fun observeSong(id: Long): Flow<SongEntity?> = songs.map { it[id] }
 
-    override suspend fun getSongs(ids: List<Long>): List<SongEntity> = ids.mapNotNull { songs.value[it] }
 }
 
 class FakeRecentlyPlayedDao(private val songDao: FakeSongDao) : RecentlyPlayedDao {

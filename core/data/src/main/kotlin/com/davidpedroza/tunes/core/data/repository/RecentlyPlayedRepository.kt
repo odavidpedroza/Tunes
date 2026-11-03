@@ -12,6 +12,7 @@ interface RecentlyPlayedRepository {
     suspend fun markPlayed(song: Song)
 
     companion object {
+        /** How many songs the home screen lists; the repository keeps a longer history. */
         const val DEFAULT_LIMIT = 20
     }
 }

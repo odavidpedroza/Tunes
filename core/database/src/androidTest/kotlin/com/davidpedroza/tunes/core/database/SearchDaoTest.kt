@@ -32,6 +32,27 @@ class SearchDaoTest : DatabaseTest() {
     }
 
     @Test
+    fun duplicateResultsAreIgnoredAndKeepTheirFirstPosition() = runTest {
+        db.songDao().upsertAll(listOf(song(1), song(2)))
+        db.searchDao().insertResults(
+            listOf(
+                SearchResultEntity(query = "a", songId = 1, position = 0),
+                SearchResultEntity(query = "a", songId = 2, position = 1),
+            ),
+        )
+
+        // The API's order is not stable between calls: a later page can repeat a song already stored.
+        db.searchDao().insertResults(listOf(SearchResultEntity(query = "a", songId = 1, position = 2)))
+
+        val page = db.searchDao().pagingSource("a")
+            .load(PagingSource.LoadParams.Refresh(key = null, loadSize = 10, placeholdersEnabled = false))
+            as PagingSource.LoadResult.Page
+
+        assertEquals(2, db.searchDao().countResults("a"))
+        assertEquals(listOf(1L, 2L), page.data.map { it.id })
+    }
+
+    @Test
     fun clearResultsOnlyAffectsTheGivenQuery() = runTest {
         db.songDao().upsertAll(listOf(song(1), song(2)))
         db.searchDao().insertResults(
